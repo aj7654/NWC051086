@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<head>
+    <meta charset="utf-8">
+    <title>
+        Bolt-Smart Watch
+    </title>
+    <!-- Bootstraps Java Scipts Links -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+    <script src="https://code.jquery.com/jquery-3.4.1.slim.min.js" integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js" integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6" crossorigin="anonymous"></script>
+
+
+
+    <!-- JQuery links  -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+
+    <!--High CHART LIVE  -->
+    <script src="http://code.highcharts.com/highcharts.js"></script>
+    <script src="http://code.highcharts.com/highcharts-more.js"></script>
+    <script src="http://code.highcharts.com/modules/exporting.js"></script>
+
+    <!--Gauge  -->
+    <script type="text/javascript" src="http://pubnub.github.io/eon/lib/eon.js"></script>
+
+
+
+    <style>
+        *{
+            margin: 5px;
+            margin-right: 20px;
+            
+        }
+        .top-header{
+            font-size: 32px;
+            text-align: center;
+        }
+        .wrapper-container{
+            width:100%;
+            display: flex;
+            text-align: center;
+            justify-content: space-evenly;
+            margin: 10px 20px 5px 10px;
+            background-color: aliceblue;
+            align-items: center;
+        }
+        .heading{
+            font-size:18px;
+        }
+        .ip-styling{
+            padding:10px 20px;
+            border-radius: 20px;
+            text-align: center;
+        }
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        .sub{
+            padding:5px 20px;
+            height:40px;
+            width:90px;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+
+        }
+        .graph-area{
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .result_container{
+            margin-top: 2%;
+            align-items: center;
+            text-align: center;
+            width: 100%;
+            
+            
+        }
+
+        .result_container .fail{
+            padding: 1%;
+            background-color: rgb(90, 32, 32);
+            color:rgb(255, 255, 255)
+        }
+
+        .result_container .pass{
+            padding: 1%;
+            background-color: rgb(3, 94, 0);
+            color:rgb(255, 255, 255)
+        }
+    </style>
+</head>
+<body>
+    
+        <div class="top-header">
+            BOLT - Smart Watch
+        </div>
+        <form method="POST" action="{{url_for('home')}}">
+            <div class="wrapper-container">
+            <div class="column-1">
+                <h4 class="heading">
+                    HeartRate :
+                </h4>
+                <input type="number" name="heartrate" placeholder="Enter HeartRate" class="ip-styling">
+            </div>
+            <div class="column-2">
+                <h4 class="heading">
+                    Diastolic :
+                </h4>
+                <input type="number" name="diastolic" placeholder="Enter Diastolic" class="ip-styling">
+            </div>
+            <div class="column-3">
+                <h4 class="heading">
+                    Systolic :
+                </h4>
+                <input type="number" name="systolic" placeholder="Enter Systolic" class="ip-styling">
+            </div>
+            <div class="column-4">
+                <h4 class="heading">
+                    BreathRate :
+                </h4>
+                <input type="number" name="breathrate" placeholder="Enter BreathRate" class="ip-styling">
+            </div>
+            <div class="column-5">
+                <h4 class="heading">
+                    Activity :
+                </h4>
+                <input type="number" name="activity" placeholder="Enter Activity Number" class="ip-styling">
+            </div>
+            <input type="submit" value="predict" class="sub">
+        </div>
+        
+        </form>
+
+        <div class="result_container">
+            {%if data==1%}
+            <h1 class="fail">You are in danger</h1>
+
+            {%elif data==0%}
+            <h1 class="pass">You are safe</h1>
+
+            {%else%}
+            <h1></h1>
+
+            {%endif%}
+        </div>
+        <div class="graph-area">
+            <div class="breathrate-graph" id="data-br">
+
+            </div>
+
+            <div class="heartrate-graph" id="data-hr">
+
+            </div>
+        </div>
+    <script>
+    var brg;
+    var hrg;
+    
+    function requestData(){
+
+        var req = $.get('/dashboard');
+        var tm = req.done(function(result){
+            var seriesBrg = brg.series[0],
+                shiftBrg = seriesBrg.data.length>10;
+
+            var seriesHrg = hrg.series[0],
+                shiftHrg = seriesHrg.data.length>10;
+
+            var data1 = [];
+            data1.push(result[0]);
+            data1.push(result[1]);
+
+            var data2 = [];
+            data2.push(result[0]);
+            data2.push(result[2]);
+
+            brg.series[0].addPoint(data1, true, shiftBrg);
+            hrg.series[0].addPoint(data2, true, shiftHrg);
+
+            setTimeout(requestData, 2000);
+        });
+
+    }
+
+
+
+    $(document).ready(function()
+        {
+            // --------------Chart 1 ----------------------------
+            brg = new Highcharts.Chart({
+                chart:
+                    {
+                    renderTo: 'data-br',
+                    defaultSeriesType: 'area',
+                    events: {
+                        load: requestData
+                            }
+                    },
+                title:
+                    {
+                    text: 'Breath Rate'
+                    },
+                xAxis: {
+                    type: 'datetime',
+                    tickPixelInterval: 150,
+                    maxZoom: 10 * 1000
+                        },
+                yAxis: {
+                    minPadding: 0.2,
+                    maxPadding: 0.2,
+                    title: {
+                        text: 'Value',
+                        margin: 80
+                            }
+                         },
+                series: [{
+                    color : '#c23d23',
+                    lineColor: '#303030',
+                    name: 'Breath Rate per 5 seconds',
+                    data: []
+                }]
+            });
+            // --------------Chart 1 Ends - -----------------
+
+            hrg = new Highcharts.Chart({
+                chart:
+                    {
+                        renderTo: 'data-hr',
+                        defaultSeriesType: 'area',
+                        events: {
+                            load: requestData
+                        }
+                    },
+                title:
+                    {
+                        text: 'Heart Rate'
+                    },
+                xAxis: {
+                    type: 'datetime',
+                    tickPixelInterval: 150,
+                    maxZoom: 10 * 1000
+                },
+                yAxis: {
+                    minPadding: 0.2,
+                    maxPadding: 0.2,
+                    title: {
+                        text: 'Value',
+                        margin: 80
+                    }
+                },
+                series: [{
+                    lineColor: '#1d82b8',
+                    name: 'Heart rate per 5 seconds',
+                    data: []
+                }]
+            });
+
+
+        });
+
+</script>
+</body>

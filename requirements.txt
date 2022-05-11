@@ -1,0 +1,9 @@
+numpy
+pandas
+matplotlib
+seaborn
+pandas_profiling
+sklearn
+joblib
+pickle-mixin
+flask
